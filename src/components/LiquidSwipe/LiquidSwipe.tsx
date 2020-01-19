@@ -4,6 +4,10 @@ import Content, { ContentProps } from "../Content/Content";
 import Weave from "../Weave/Weave";
 import { initialWaveCenter, waveHorRadius, waveVertRadius, sideWidth } from "../Weave/WeaveHelpers";
 import Button from "../Button/Button";
+import Animated, { Value } from "react-native-reanimated";
+import { PanGestureHandler, State } from "react-native-gesture-handler";
+import { onGestureEvent } from "react-native-redash";
+import { followPointer } from "../Weave/AnimationHelpers";
 
 export const assets = [
   require("../../assets/firstPageImage.png"),
@@ -27,20 +31,26 @@ const back: ContentProps = {
 };
 
 export default () => {
+  const isBack = new Value(0);
+  const y = new Value(initialWaveCenter);
+  const state = new Value(State.UNDETERMINED);
+  const gestureHanlder = onGestureEvent({ y });
   const progress: any = 0;
-  const centerY: any = initialWaveCenter;
+  const centerY: any = followPointer(y);
   const horRadius = waveHorRadius(progress);
   const vertRadius = waveVertRadius(progress);
   const sWidth = sideWidth(progress);
   return (
     <View style={styles.container}>
       <Content {...back} />
-      <View style={StyleSheet.absoluteFill}>
-        <Weave sideWidth={sWidth} {...{ centerY, horRadius, vertRadius }}>
-          <Content {...front} />
-        </Weave>
-        <Button />
-      </View>
+      <PanGestureHandler {...gestureHanlder}>
+        <Animated.View style={StyleSheet.absoluteFill}>
+          <Weave sideWidth={sWidth} {...{ centerY, horRadius, vertRadius }}>
+            <Content {...front} />
+          </Weave>
+          <Button />
+        </Animated.View>
+      </PanGestureHandler>
     </View>
   )
 };

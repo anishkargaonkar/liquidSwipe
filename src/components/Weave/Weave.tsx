@@ -1,9 +1,9 @@
 import React, { ReactNode } from "react";
 // eslint-disable-next-line react-native/split-platform-components
-import { Dimensions, MaskedViewIOS, StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
-// import MaskedView from "@react-native-community/masked-view";
+import MaskedView from "@react-native-community/masked-view";
 
 import { close, curveTo, lineTo, moveTo } from "./SVGHelpers";
 
@@ -16,9 +16,10 @@ interface WeaveProps {
   horRadius: Animated.Node<number>;
   vertRadius: Animated.Node<number>;
   sideWidth: Animated.Node<number>;
+  children: ReactNode;
 }
 
-export default ({ centerY, horRadius, vertRadius, sideWidth }: WeaveProps) => {
+export default ({ centerY, horRadius, vertRadius, sideWidth, children }: WeaveProps) => {
   const curveStartY = add(centerY, vertRadius);
   const maskWidth = sub(width, sideWidth);
   const commands: Animated.Node<string>[] = [];
@@ -170,9 +171,15 @@ export default ({ centerY, horRadius, vertRadius, sideWidth }: WeaveProps) => {
   lineTo(commands, maskWidth, 0);
   close(commands);
   const d = commands.reduce((acc, c) => concat(acc, c));
-  return (
+  const maskElement = (
     <Svg {...{ width, height }}>
       <AnimatedPath {...{ d }} fill="black" />
     </Svg>
   );
+
+  return (
+    <MaskedView style={StyleSheet.absoluteFill} {...{ maskElement }}>
+      {children}
+    </MaskedView>
+  )
 };

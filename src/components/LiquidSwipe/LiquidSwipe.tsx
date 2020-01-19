@@ -36,7 +36,9 @@ export default () => {
     <View style={styles.container}>
       <Content {...back} />
       <View style={StyleSheet.absoluteFill}>
-        <Weave sideWidth={sWidth} {...{ centerY, horRadius, vertRadius }} />
+        <Weave sideWidth={sWidth} {...{ centerY, horRadius, vertRadius }}>
+          <Content {...front} />
+        </Weave>
         <Button />
       </View>
     </View>

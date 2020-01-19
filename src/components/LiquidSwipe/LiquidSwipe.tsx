@@ -1,6 +1,9 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import Content, { ContentProps } from "../Content/Content";
+import Weave from "../Weave/Weave";
+import { initialWaveCenter, waveHorRadius, waveVertRadius, sideWidth } from "../Weave/WeaveHelpers";
+import Button from "../Button/Button";
 
 export const assets = [
   require("../../assets/firstPageImage.png"),
@@ -23,11 +26,22 @@ const back: ContentProps = {
   color: "black"
 };
 
-export default () => (
-  <View style={styles.container}>
-    <Content {...back} />
-  </View>
-);
+export default () => {
+  const progress: any = 0;
+  const centerY: any = initialWaveCenter;
+  const horRadius = waveHorRadius(progress);
+  const vertRadius = waveVertRadius(progress);
+  const sWidth = sideWidth(progress);
+  return (
+    <View style={styles.container}>
+      <Content {...back} />
+      <View style={StyleSheet.absoluteFill}>
+        <Weave sideWidth={sWidth} {...{ centerY, horRadius, vertRadius }} />
+        <Button />
+      </View>
+    </View>
+  )
+};
 
 const styles = StyleSheet.create({
   container: {

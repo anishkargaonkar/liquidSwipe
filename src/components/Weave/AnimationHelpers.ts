@@ -1,20 +1,36 @@
-import Animated, { not, clockRunning, stopClock, and, eq, add, diffClamp } from "react-native-reanimated";
+import Animated from "react-native-reanimated";
 import { State } from "react-native-gesture-handler";
 
-const { Value, Clock, SpringUtils, block, startClock, set, spring, cond } = Animated;
+const {
+  Clock,
+  Value,
+  eq,
+  cond,
+  add,
+  block,
+  set,
+  stopClock,
+  startClock,
+  not,
+  clockRunning,
+  spring,
+  SpringUtils,
+  and,
+  diffClamp
+} = Animated;
+
 export const followPointer = (value: Animated.Node<number>) => {
   const clock = new Clock();
-  const config = SpringUtils.makeDefaultConfig();
+  const config = { ...SpringUtils.makeDefaultConfig(), toValue: new Value(0) };
   const state = {
-    position: new Value(0),
-    velocity: new Value(0),
     time: new Value(0),
+    velocity: new Value(0),
+    position: new Value(0),
     finished: new Value(0)
   };
-
   return block([
     startClock(clock),
-    set(config.toValue as any, value),
+    set(config.toValue, value),
     spring(clock, state, config),
     state.position
   ]);
@@ -22,42 +38,52 @@ export const followPointer = (value: Animated.Node<number>) => {
 
 export const snapProgress = (
   value: Animated.Node<number>,
-  state: Animated.Node<number>,
-  isBack: Animated.Value<number>,
-  snapPoint: Animated.Node<number>
+  gesture: Animated.Value<State>,
+  isBack: Animated.Value<0 | 1>,
+  point: Animated.Adaptable<number>
 ) => {
   const offset = new Value(0);
   const clock = new Clock();
-  const config = SpringUtils.makeDefaultConfig();
-  const s = {
-    position: new Value(0),
-    velocity: new Value(0),
+  const state = {
     time: new Value(0),
+    velocity: new Value(0),
+    position: new Value(0),
     finished: new Value(0)
   };
+  const config = {
+    toValue: new Value(0),
+    damping: 26,
+    mass: 1,
+    stiffness: 170,
+    overshootClamping: false,
+    restSpeedThreshold: 0.01,
+    restDisplacementThreshold: 0.01
+  };
   return block([
-    cond(eq(state, State.ACTIVE), [
-      cond(clockRunning(clock), [
-        set(offset, s.position),
-        stopClock(clock)
-      ], set(
-        s.position,
-        diffClamp(add(offset, value), 0, 1)
-      ))
-    ], [
-      cond(not(clockRunning(clock)), [
-        set(s.time, 0),
-        set(s.finished, 0),
-        set(config.toValue as any, snapPoint),
-        startClock(clock)
-      ]),
-      spring(clock, s, config),
-      cond(and(eq(s.finished, 1), clockRunning(clock)), [
-        set(isBack, snapPoint),
-        stopClock(clock),
-        set(offset, 0)
-      ])
-    ]),
-    s.position
-  ])
+    cond(
+      eq(gesture, State.ACTIVE),
+      [
+        cond(
+          clockRunning(clock),
+          [stopClock(clock), set(offset, state.position)],
+          set(state.position, diffClamp(add(offset, value), 0, 1))
+        )
+      ],
+      [
+        cond(not(clockRunning(clock)), [
+          set(state.time, 0),
+          set(state.finished, 0),
+          set(config.toValue, point),
+          startClock(clock)
+        ]),
+        spring(clock, state, config),
+        cond(and(eq(state.finished, 1), clockRunning(clock)), [
+          set(isBack, point),
+          stopClock(clock),
+          set(offset, 0)
+        ])
+      ]
+    ),
+    state.position
+  ]);
 };

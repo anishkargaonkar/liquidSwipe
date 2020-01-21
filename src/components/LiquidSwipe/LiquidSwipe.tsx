@@ -1,53 +1,57 @@
 import React from "react";
-import { StyleSheet, View, Dimensions } from "react-native";
-import Content, { ContentProps } from "../Content/Content";
-import Weave from "../Weave/Weave";
-import { initialWaveCenter, waveHorRadius, waveVertRadius, sideWidth, initialSideWidth, waveHorRadiusBack } from "../Weave/WeaveHelpers";
-import Button from "../Button/Button";
-import Animated, { Value, interpolate, divide, multiply, cond } from "react-native-reanimated";
+import { Dimensions, StyleSheet, View } from "react-native";
+import Animated from "react-native-reanimated";
+
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { onGestureEvent, snapPoint } from "react-native-redash";
+import Weave from "../Weave/Weave";
 import { followPointer, snapProgress } from "../Weave/AnimationHelpers";
+import {
+  initialSideWidth,
+  initialWaveCenter,
+  sideWidth,
+  waveHorRadius,
+  waveHorRadiusBack,
+  waveVertRadius
+} from "../Weave/WeaveHelpers";
+import Content from "../Content/Content";
+import Button from "../Button/Button";
 
 export const assets = [
   require("../../assets/firstPageImage.png"),
   require("../../assets/secondPageImage.png")
 ];
 
-const front: ContentProps = {
-  backgroundColor: "#4d1168",
-  source: assets[1],
-  title1: "For",
-  title2: "Gamers",
-  color: "#fd5587"
-};
+const { width } = Dimensions.get("window");
+const { Value, cond, multiply, divide, interpolate } = Animated;
 
-const back: ContentProps = {
-  backgroundColor: "white",
-  source: assets[0],
-  title1: "Online",
-  title2: "Gambling",
-  color: "black"
-};
-
-const { width } = Dimensions.get("window")
-const maxWidth = width - initialSideWidth;
+const styles = StyleSheet.create({
+  container: {
+    flex: 1
+  }
+});
 
 export default () => {
-  const isBack = new Value(0);
   const y = new Value(initialWaveCenter);
   const translationX = new Value(0);
   const velocityX = new Value(0);
   const state = new Value(State.UNDETERMINED);
-  const gestureHanlder = onGestureEvent({ y, state, translationX, velocityX });
-
-  const gestureProgress = cond(isBack,
+  const gestureHandler = onGestureEvent({
+    translationX,
+    velocityX,
+    y,
+    state
+  });
+  const maxDist = width - initialSideWidth;
+  const isBack = new Value(0);
+  const gestureProgress = cond(
+    isBack,
     interpolate(translationX, {
-      inputRange: [0, maxWidth],
+      inputRange: [0, maxDist],
       outputRange: [1, 0]
     }),
     interpolate(translationX, {
-      inputRange: [-maxWidth, 0],
+      inputRange: [-maxDist, 0],
       outputRange: [0.4, 0]
     })
   );
@@ -57,12 +61,14 @@ export default () => {
     isBack,
     snapPoint(
       gestureProgress,
-      divide(multiply(-1, velocityX), multiply(-maxWidth, cond(isBack, 1, 0.4))),
+      divide(
+        multiply(-1, velocityX),
+        cond(isBack, maxDist, multiply(maxDist, 0.4))
+      ),
       [0, 1]
     )
-  )
-
-  const centerY: any = followPointer(y);
+  );
+  const centerY = followPointer(y);
   const horRadius = cond(
     isBack,
     waveHorRadiusBack(progress),
@@ -72,22 +78,27 @@ export default () => {
   const sWidth = sideWidth(progress);
   return (
     <View style={styles.container}>
-      <Content {...back} />
-      <PanGestureHandler {...gestureHanlder}>
+      <Content
+        backgroundColor="white"
+        source={assets[0]}
+        title1="Online"
+        title2="Gambling"
+        color="black"
+      />
+      <PanGestureHandler {...gestureHandler}>
         <Animated.View style={StyleSheet.absoluteFill}>
           <Weave sideWidth={sWidth} {...{ centerY, horRadius, vertRadius }}>
-            <Content {...front} />
+            <Content
+              backgroundColor="#4d1168"
+              source={assets[1]}
+              title1="For"
+              title2="Gamers"
+              color="#fd5587"
+            />
           </Weave>
           <Button y={centerY} {...{ progress }} />
         </Animated.View>
       </PanGestureHandler>
     </View>
-  )
+  );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1
-  }
-});
-

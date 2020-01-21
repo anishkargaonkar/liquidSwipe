@@ -1,13 +1,13 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Dimensions } from "react-native";
 import Content, { ContentProps } from "../Content/Content";
 import Weave from "../Weave/Weave";
-import { initialWaveCenter, waveHorRadius, waveVertRadius, sideWidth } from "../Weave/WeaveHelpers";
+import { initialWaveCenter, waveHorRadius, waveVertRadius, sideWidth, initialSideWidth, waveHorRadiusBack } from "../Weave/WeaveHelpers";
 import Button from "../Button/Button";
-import Animated, { Value } from "react-native-reanimated";
+import Animated, { Value, interpolate, divide, multiply, cond } from "react-native-reanimated";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
-import { onGestureEvent } from "react-native-redash";
-import { followPointer } from "../Weave/AnimationHelpers";
+import { onGestureEvent, snapPoint } from "react-native-redash";
+import { followPointer, snapProgress } from "../Weave/AnimationHelpers";
 
 export const assets = [
   require("../../assets/firstPageImage.png"),
@@ -30,14 +30,44 @@ const back: ContentProps = {
   color: "black"
 };
 
+const { width } = Dimensions.get("window")
+const maxWidth = width - initialSideWidth;
+
 export default () => {
   const isBack = new Value(0);
   const y = new Value(initialWaveCenter);
+  const translationX = new Value(0);
+  const velocityX = new Value(0);
   const state = new Value(State.UNDETERMINED);
-  const gestureHanlder = onGestureEvent({ y });
-  const progress: any = 0;
+  const gestureHanlder = onGestureEvent({ y, state, translationX, velocityX });
+
+  const gestureProgress = cond(isBack,
+    interpolate(translationX, {
+      inputRange: [0, maxWidth],
+      outputRange: [1, 0]
+    }),
+    interpolate(translationX, {
+      inputRange: [-maxWidth, 0],
+      outputRange: [0.4, 0]
+    })
+  );
+  const progress = snapProgress(
+    gestureProgress,
+    state,
+    isBack,
+    snapPoint(
+      gestureProgress,
+      divide(multiply(-1, velocityX), multiply(-maxWidth, cond(isBack, 1, 0.4))),
+      [0, 1]
+    )
+  )
+
   const centerY: any = followPointer(y);
-  const horRadius = waveHorRadius(progress);
+  const horRadius = cond(
+    isBack,
+    waveHorRadiusBack(progress),
+    waveHorRadius(progress)
+  );
   const vertRadius = waveVertRadius(progress);
   const sWidth = sideWidth(progress);
   return (
@@ -48,7 +78,7 @@ export default () => {
           <Weave sideWidth={sWidth} {...{ centerY, horRadius, vertRadius }}>
             <Content {...front} />
           </Weave>
-          <Button />
+          <Button y={centerY} {...{ progress }} />
         </Animated.View>
       </PanGestureHandler>
     </View>
